@@ -1,0 +1,220 @@
+/* ── Reset & base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0f1117;
+  --surface:   #1a1d2e;
+  --border:    #2a2d3e;
+  --accent:    #4f8ef7;
+  --accent2:   #34d399;
+  --danger:    #f87171;
+  --text:      #e2e8f0;
+  --muted:     #64748b;
+  --radius:    12px;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ───────────────────────────────────────────── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 1.25rem 2rem;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--accent);
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.2rem;
+}
+
+/* ── Status badge ─────────────────────────────────────── */
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--border);
+  color: var(--muted);
+  transition: background 0.3s, color 0.3s;
+}
+
+.status-badge.online {
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--accent2);
+}
+
+.status-badge.offline {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--danger);
+}
+
+/* ── Main layout ──────────────────────────────────────── */
+main {
+  flex: 1;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem;
+}
+
+/* ── Update bar ───────────────────────────────────────── */
+.update-bar {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 1.25rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.update-bar strong { color: var(--text); }
+
+/* ── Cards grid ───────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  transition: border-color 0.2s;
+}
+
+.card:hover { border-color: var(--accent); }
+
+.card-icon { font-size: 1.4rem; margin-bottom: 0.5rem; }
+
+.card-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.3rem;
+}
+
+.card-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.card-value.small { font-size: 0.9rem; }
+
+/* ── Memory section ───────────────────────────────────── */
+.memory-section, .cpu-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+h2 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1rem;
+}
+
+.memory-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.memory-bar-track {
+  flex: 1;
+  height: 12px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.memory-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+
+.memory-pct {
+  font-weight: 700;
+  font-size: 1rem;
+  min-width: 3rem;
+  text-align: right;
+}
+
+.memory-stats {
+  display: flex;
+  gap: 2rem;
+}
+
+.mem-stat { display: flex; flex-direction: column; gap: 0.2rem; }
+.mem-label { font-size: 0.75rem; color: var(--muted); }
+.mem-value { font-weight: 600; font-size: 0.95rem; }
+
+/* ── CPU section ──────────────────────────────────────── */
+.cpu-model {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+.load-averages {
+  display: flex;
+  gap: 2rem;
+}
+
+.load-item { display: flex; flex-direction: column; gap: 0.2rem; }
+.load-label { font-size: 0.75rem; color: var(--muted); }
+.load-value { font-weight: 700; font-size: 1.2rem; color: var(--accent); }
+
+/* ── Footer ───────────────────────────────────────────── */
+footer {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Loading pulse animation ──────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.loading { animation: pulse 1.2s ease-in-out infinite; }

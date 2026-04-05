@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PingBoard — Server Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <h1>⚡ PingBoard</h1>
+      <div class="status-badge" id="statusBadge">Connecting...</div>
+    </div>
+    <p class="subtitle">Live server health dashboard</p>
+  </header>
+
+  <main>
+
+    <!-- Last updated bar -->
+    <div class="update-bar">
+      <span>Last updated: <strong id="lastUpdated">—</strong></span>
+      <span>Refreshing every <strong>5s</strong></span>
+    </div>
+
+    <!-- Stat cards grid -->
+    <div class="grid">
+
+      <div class="card">
+        <div class="card-icon">🖥️</div>
+        <div class="card-label">Hostname</div>
+        <div class="card-value" id="hostname">—</div>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🟢</div>
+        <div class="card-label">Status</div>
+        <div class="card-value" id="environment">—</div>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🟦</div>
+        <div class="card-label">Node.js Version</div>
+        <div class="card-value" id="nodeVersion">—</div>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🕐</div>
+        <div class="card-label">Server Time</div>
+        <div class="card-value small" id="serverTime">—</div>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">⏱️</div>
+        <div class="card-label">System Uptime</div>
+        <div class="card-value" id="uptime">—</div>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🚀</div>
+        <div class="card-label">Process Uptime</div>
+        <div class="card-value" id="processUptime">—</div>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">💾</div>
+        <div class="card-label">Platform</div>
+        <div class="card-value" id="platform">—</div>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">⚙️</div>
+        <div class="card-label">CPU Cores</div>
+        <div class="card-value" id="cpuCores">—</div>
+      </div>
+
+    </div>
+
+    <!-- Memory section -->
+    <section class="memory-section">
+      <h2>Memory Usage</h2>
+
+      <div class="memory-bar-wrap">
+        <div class="memory-bar-track">
+          <div class="memory-bar-fill" id="memBar"></div>
+        </div>
+        <span class="memory-pct" id="memPct">—</span>
+      </div>
+
+      <div class="memory-stats">
+        <div class="mem-stat">
+          <span class="mem-label">Used</span>
+          <span class="mem-value" id="usedMemory">—</span>
+        </div>
+        <div class="mem-stat">
+          <span class="mem-label">Free</span>
+          <span class="mem-value" id="freeMemory">—</span>
+        </div>
+        <div class="mem-stat">
+          <span class="mem-label">Total</span>
+          <span class="mem-value" id="totalMemory">—</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CPU section -->
+    <section class="cpu-section">
+      <h2>CPU Information</h2>
+      <div class="cpu-info">
+        <div class="cpu-model" id="cpuModel">—</div>
+        <div class="load-averages">
+          <div class="load-item">
+            <span class="load-label">Load avg 1m</span>
+            <span class="load-value" id="load1">—</span>
+          </div>
+          <div class="load-item">
+            <span class="load-label">Load avg 5m</span>
+            <span class="load-value" id="load5">—</span>
+          </div>
+          <div class="load-item">
+            <span class="load-label">Load avg 15m</span>
+            <span class="load-value" id="load15">—</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    PingBoard · Built with Node.js + Express · Week 2 Deliverable
+  </footer>
+
+  <script src="app.js"></script>
+
+</body>
+</html>
