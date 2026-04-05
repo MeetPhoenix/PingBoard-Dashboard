@@ -1,0 +1,191 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# .github/workflows/ci-cd.yml — PingBoard CI/CD Pipeline
+#
+# Triggers:
+#   • Every push to main or develop  → test + build + push image
+#   • Every pull request to main or develop → test only (no push)
+#
+# Jobs:
+#   1. test        — install deps, run tests (all branches/PRs)
+#   2. build-push  — build Docker image and push to GHCR (pushes only)
+# ══════════════════════════════════════════════════════════════════════════════
+
+name: CI/CD Pipeline
+
+# ── When this workflow runs ───────────────────────────────────────────────────
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+# ── Concurrency: cancel stale runs on the same branch ─────────────────────────
+# If you push 3 commits quickly, only the newest run continues.
+# The older in-progress runs are cancelled automatically.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ══════════════════════════════════════════════════════════════════════════════
+# JOB 1 — Test
+# Runs on every push and every pull request.
+# Validates that dependencies install cleanly and all tests pass.
+# ══════════════════════════════════════════════════════════════════════════════
+jobs:
+  test:
+    name: Install & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1 — Checkout source code
+      # Uses the official GitHub action to clone the repo into the runner.
+      # fetch-depth: 1 = shallow clone (only latest commit) — faster checkout.
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # Step 2 — Set up Node.js with dependency caching
+      # Installs Node 22 (matches the Dockerfile base image node:22-alpine).
+      # cache: 'npm' stores ~/.npm between runs, keyed on package-lock.json.
+      # On cache hit, npm ci goes from ~30s → ~5s.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # Step 3 — Install dependencies
+      # npm ci = clean install. Faster and stricter than npm install:
+      #   • Deletes node_modules before installing
+      #   • Installs exactly what's in package-lock.json (no version drift)
+      #   • Fails if package-lock.json is out of sync with package.json
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4 — Run tests
+      # Runs whatever is defined in the "test" script in package.json.
+      # If no test script exists yet, add one — even a placeholder like:
+      #   "test": "echo 'No tests yet' && exit 0"
+      # A pipeline without a test step provides no safety net.
+      - name: Run tests
+        run: npm test
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 2 — Build & Push Docker Image
+  # Runs ONLY on pushes (not on pull requests).
+  # Depends on job 1 — if tests fail, this job never starts.
+  # Pushes to GitHub Container Registry (ghcr.io).
+  # ════════════════════════════════════════════════════════════════════════════
+  build-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: test  # wait for tests to pass before building
+    # Only run on direct pushes — skip for pull requests
+    if: github.event_name == 'push'
+
+    # Permissions — principle of least privilege.
+    # contents: read  → allows checking out the code
+    # packages: write → allows pushing to ghcr.io
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # Step 1 — Checkout source code
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # Step 2 — Read APP_VERSION from package.json
+      # Extracts the "version" field from package.json using jq.
+      # Sets it as a step output so later steps can reference it.
+      # This replaces the hardcoded APP_VERSION="0.1.0" from the README.
+      - name: Read version from package.json
+        id: pkg
+        run: echo "version=$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
+
+      # Step 3 — Set up Docker Buildx
+      # Buildx is an extended Docker build client with extra features:
+      #   • Multi-platform builds (arm64/amd64)
+      #   • Advanced caching (type=gha)
+      #   • Better build performance
+      # Required for the cache-from / cache-to options used later.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Step 4 — Log in to GitHub Container Registry (GHCR)
+      # Uses GITHUB_TOKEN — a secret GitHub injects automatically into every
+      # workflow run. No manual setup or secrets configuration needed.
+      # Images will be pushed to: ghcr.io/<owner>/<repo>
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 5 — Generate image tags and OCI labels
+      # docker/metadata-action reads the git context and generates:
+      #   Tags:
+      #     • develop-<short-sha>  → always (matches README convention)
+      #     • develop-latest       → only on pushes to the 'develop' branch
+      #     • latest               → only on pushes to 'main'
+      #   Labels (OCI standard — matches the LABEL block in your Dockerfile):
+      #     • org.opencontainers.image.title
+      #     • org.opencontainers.image.version
+      #     • org.opencontainers.image.revision
+      #     • org.opencontainers.image.created
+      #     • org.opencontainers.image.description
+      #     • org.opencontainers.image.source (links back to this GitHub repo)
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,prefix=develop-,format=short
+            type=raw,value=develop-latest,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      # Step 6 — Build and push the Docker image
+      # Uses your existing multi-stage Dockerfile unchanged.
+      # build-args: injects the three values your Dockerfile expects:
+      #   APP_VERSION → from package.json (step 2 output)
+      #   GIT_COMMIT  → full SHA from github.sha (replaces git rev-parse)
+      #   BUILD_DATE  → ISO-8601 timestamp from metadata-action output
+      # cache-from/cache-to: uses GitHub Actions cache to store Docker layers.
+      #   On cache hit, only changed layers rebuild — typically just the source
+      #   copy layer. The npm ci layer is almost always cached.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.pkg.outputs.version }}
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Step 7 — Print a summary to the Actions run log
+      # Shows exactly which tags were pushed, so you can confirm at a glance.
+      - name: Print image summary
+        run: |
+          echo "### Docker Image Published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Registry:** ghcr.io/${{ github.repository }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Tags pushed:**" >> "$GITHUB_STEP_SUMMARY"
+          echo '${{ steps.meta.outputs.tags }}' | tr ',' '\n' | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version:** ${{ steps.pkg.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
