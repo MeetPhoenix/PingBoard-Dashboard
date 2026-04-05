@@ -1,0 +1,51 @@
+# docker-compose.yml — PingBoard
+#
+# What this file does:
+#   Defines how to build and run the PingBoard container locally.
+#   Instead of a long "docker run ..." command, you just type:
+#     docker compose up
+#
+# Usage:
+#   Start (build if needed, run in background): docker compose up -d --build
+#   See logs:                                   docker compose logs -f
+#   Stop (keep container):                      docker compose stop
+#   Stop and remove container:                  docker compose down
+#   Rebuild from scratch:                       docker compose down && docker compose up -d --build
+
+services:
+  pingboard:
+    # Build the image from the Dockerfile in the current directory (.)
+    # "context: ." means "use this folder as the build folder"
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # Name the running container "pingboard" (easier to reference)
+    container_name: pingboard
+
+    # Map ports: HOST_PORT:CONTAINER_PORT
+    # "3000:3000" means: when someone visits localhost:3000 on your machine,
+    # forward that request to port 3000 inside the container.
+    ports:
+      - "3000:3000"
+
+    # Environment variables passed into the container at runtime.
+    # These override the defaults set in the Dockerfile.
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+
+    # Restart policy: if the container crashes, Docker restarts it automatically.
+    # "unless-stopped" means: restart on crash or reboot, but NOT if you
+    # manually ran "docker compose stop" or "docker compose down".
+    restart: unless-stopped
+
+    # Health check: Docker pings /api/health every 30 seconds.
+    # If it fails 3 times in a row, the container is marked "unhealthy".
+    # This mirrors the HEALTHCHECK instruction in the Dockerfile.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
